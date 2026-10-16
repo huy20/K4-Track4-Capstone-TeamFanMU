@@ -21,7 +21,7 @@ body {
   background: radial-gradient(1200px 760px at 72% -14%, #16283f 0%, #0a121e 52%, #060a11 100%);
   overflow: hidden;
 }
-.app { display: grid; grid-template-columns: 342px minmax(0, 1fr); gap: 14px; padding: 14px; height: 100vh; }
+.app { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 14px; padding: 14px; height: 100vh; }
 .side { display: flex; flex-direction: column; gap: 12px; overflow: auto; padding-right: 4px; }
 .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; backdrop-filter: blur(8px); }
 h1 { font-size: 21px; margin: 0 0 6px; letter-spacing: -.01em; }
@@ -150,6 +150,67 @@ label.toggle input { accent-color: #4a90e2; width: 16px; height: 16px; }
       <span class="chip">camera → state → servo nắp thùng</span>
     </div>
 
+    <div class="card" style="border: 1px solid rgba(69, 214, 196, 0.45); background: rgba(14, 25, 40, 0.9);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <h2 style="color: #45d6c4; margin:0; font-size:11.5px; letter-spacing:0.12em;">TRỤ CỘT 3 & 5: TEMPORAL KALMAN & LỌC BẤT ĐỊNH</h2>
+        <span class="chip" style="margin:0; padding:1px 8px; border-color:#45d6c4; color:#45d6c4; font-size:10px;">Thành viên 3</span>
+      </div>
+      <p class="sub" style="font-size:12px; margin-bottom:10px;">Khử jitter qua <b>Kalman 3D</b>, xác thực chuỗi đồng thuận $\ge 4/5$ frame và chặn gắp nếu $\Delta E > 25\text{mm}$ hoặc $Conf < 0.65$.</p>
+      
+      <!-- Live Status HUD -->
+      <div style="background: #080e17; border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-family: var(--mono); font-size: 11.5px; display: grid; gap: 5px;">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--muted)">Consensus:</span>
+          <span id="trackerConsensus" style="color:#e9f0fb; font-weight:700;">0/5 (Chờ)</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--muted)">Raw 3D:</span>
+          <span id="trackerRaw" style="color:#9ec6ff;">[0.000, 0.000, 0.000]m</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span style="color:var(--muted)">Kalman 3D Smooth:</span>
+          <span id="trackerSmooth" style="color:#45d6c4; font-weight:700;">[0.000, 0.000, 0.000]m</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="color:var(--muted)">Sai số ΔE (Sim GT):</span>
+          <span id="trackerError" style="font-weight:700; color:#6ddc8b;">0.00 mm</span>
+        </div>
+        <div style="height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow:hidden;">
+          <div id="trackerErrorBar" style="height:100%; width: 5%; background: #6ddc8b; transition: width 0.3s, background 0.3s;"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+          <span style="color:var(--muted)">Uncertainty Flag:</span>
+          <span id="trackerFlag" style="padding:2px 8px; border-radius:4px; font-size:10.5px; background:rgba(109,220,139,0.18); color:#6ddc8b; font-weight:700;">CONFIDENT</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px dashed var(--line); padding-top:6px; margin-top:3px;">
+          <span style="color:var(--muted)">Safety Interlock:</span>
+          <span id="trackerPickStatus" style="font-size:11px; font-weight:700; color:#8ea1bf;">IDLE / HOLD</span>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div style="margin-top:10px; display:grid; gap:7px;">
+        <div style="display:flex; gap:6px; align-items:center;">
+          <label style="font-size:11.5px; color:var(--muted); min-width:65px;">Vật liệu:</label>
+          <select id="trackerMaterial" style="flex:1; background:#080e17; color:#e9f0fb; border:1px solid var(--line); border-radius:8px; padding:4px 8px; font-family:var(--mono); font-size:12px;">
+            <option value="Plastic" selected>Plastic (Nhựa)</option>
+            <option value="Metal">Metal (Kim loại)</option>
+            <option value="Paper">Paper (Giấy)</option>
+            <option value="Organic">Organic (Hữu cơ)</option>
+          </select>
+        </div>
+        <div style="display:flex; gap:5px; flex-wrap:wrap;">
+          <button id="btnRunStandard" class="primary" style="flex:1; font-size:11.5px; padding:6px 8px;">▶ Chu trình chuẩn (10 frames)</button>
+          <button id="btnRunNoise" class="ghost" style="font-size:11px; padding:5px 7px; border-color:#e5484d; color:#ff7b7b;">⚡ Nhiễu > 30mm</button>
+          <button id="btnRunLowConf" class="ghost" style="font-size:11px; padding:5px 7px; border-color:#f0b964; color:#f0b964;">⚡ Conf < 0.65</button>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:2px;">
+          <label class="toggle" style="margin:0; font-size:11.5px;"><input type="checkbox" id="trackerLiveStream"> Stream liên tục</label>
+          <label class="toggle" style="margin:0; font-size:11.5px;"><input type="checkbox" id="trackerUseBackend"> Python /api/track</label>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <h2>State từ perception</h2>
       <textarea id="json" spellcheck="false">{"metal": 3, "paper": 2}</textarea>
@@ -183,6 +244,14 @@ label.toggle input { accent-color: #4a90e2; width: 16px; height: 16px; }
           <button class="ghost" data-view="iso">Góc 45°</button>
           <button class="ghost" data-view="top">Từ trên</button>
         </div>
+      </div>
+      <div id="sceneHud" style="position:absolute; right:14px; top:14px; background:rgba(11,21,34,0.85); border:1px solid rgba(69,214,196,0.35); border-radius:10px; padding:8px 12px; font-family:var(--mono); font-size:11.5px; pointer-events:none; z-index:10; backdrop-filter:blur(6px); display:flex; flex-direction:column; gap:3px;">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#45d6c4;" id="hudDot"></span>
+          <span style="color:#45d6c4; font-weight:700;">TRACKER TV3 HUD</span>
+          <span id="hudBadge" style="font-size:10px; padding:1px 6px; border-radius:4px; background:rgba(109,220,139,0.2); color:#6ddc8b;">READY</span>
+        </div>
+        <div style="color:#8ea1bf; font-size:11px;" id="hudDetails">Consensus: 0/5 | Kalman: [0,0,0]m | ΔE: 0.0mm</div>
       </div>
     </section>
   </main>
@@ -476,6 +545,293 @@ label.toggle input { accent-color: #4a90e2; width: 16px; height: 16px; }
     if (orbitEl.checked && !dragging) { ry += 0.13; applyCamera(); }
     requestAnimationFrame(loop);
   })();
+
+  /* ==============================================================
+   * THÀNH VIÊN 3: TEMPORAL KALMAN & LỌC BẤT ĐỊNH
+   * ============================================================== */
+  class KalmanFilter3D_JS {
+    constructor(q = 1e-3, r = 1e-2) {
+      this.q = q;
+      this.r = r;
+      this.x = [0, 0, 0];
+      this.p = [1, 1, 1];
+      this.is_init = false;
+    }
+    reset() {
+      this.x = [0, 0, 0];
+      this.p = [1, 1, 1];
+      this.is_init = false;
+    }
+    update(z) {
+      if (!this.is_init) {
+        this.x = [z[0], z[1], z[2]];
+        this.is_init = true;
+        return this.x.map(function (v) { return Math.round(v * 1000) / 1000; });
+      }
+      for (var i = 0; i < 3; i++) {
+        this.p[i] += this.q;
+        var k = this.p[i] / (this.p[i] + this.r);
+        this.x[i] = this.x[i] + k * (z[i] - this.x[i]);
+        this.p[i] = (1 - k) * this.p[i];
+      }
+      return this.x.map(function (v) { return Math.round(v * 1000) / 1000; });
+    }
+  }
+
+  class WasteTemporalUncertaintyTracker_JS {
+    constructor(windowSize = 5, minConsensus = 4, maxErrorMm = 25.0, minConfidence = 0.65, rejectErrorMm = 50.0) {
+      this.kf = new KalmanFilter3D_JS();
+      this.history = [];
+      this.windowSize = windowSize;
+      this.minConsensus = minConsensus;
+      this.maxErrorMm = maxErrorMm;
+      this.minConfidence = minConfidence;
+      this.rejectErrorMm = rejectErrorMm;
+    }
+    reset() {
+      this.kf.reset();
+      this.history = [];
+    }
+    update(geometricItems, simGt) {
+      if (!geometricItems || !geometricItems.length) {
+        this.history.push("NONE");
+        if (this.history.length > this.windowSize) this.history.shift();
+        return { target_object: null, should_trigger_pick: false };
+      }
+      var reachable = geometricItems.filter(function (it) { return it.is_within_reach; });
+      var target = reachable.length ? reachable[0] : geometricItems[0];
+      var rawPos = target.target_world_3d || [0, 0, 0];
+      var smoothPos = this.kf.update(rawPos);
+
+      var errorMm = 0.0;
+      var flag = "CONFIDENT";
+      var confidence = target.confidence !== undefined ? target.confidence : 1.0;
+
+      if (simGt && (simGt.true_world_pos || simGt.gt_pos)) {
+        var gt = simGt.true_world_pos || simGt.gt_pos;
+        var dx = smoothPos[0] - gt[0];
+        var dy = smoothPos[1] - gt[1];
+        errorMm = Math.round(Math.hypot(dx, dy) * 1000 * 100) / 100;
+        if (errorMm > this.rejectErrorMm) flag = "REJECTED";
+        else if (errorMm > this.maxErrorMm || confidence < this.minConfidence) flag = "UNCERTAIN";
+        else flag = "CONFIDENT";
+      } else {
+        if (confidence < this.minConfidence) flag = "UNCERTAIN";
+        else flag = "CONFIDENT";
+      }
+
+      var clsName = target.material_class || "Unknown";
+      this.history.push(clsName);
+      if (this.history.length > this.windowSize) this.history.shift();
+
+      var count = this.history.filter(function (c) { return c === clsName; }).length;
+      var ratioStr = count + "/" + this.history.length;
+      var isReachable = !!target.is_within_reach;
+      var shouldPick = (count >= this.minConsensus) && (flag === "CONFIDENT") && isReachable;
+
+      return {
+        target_object: {
+          material_class: clsName,
+          smooth_world_3d: smoothPos,
+          localization_error_mm: errorMm,
+          uncertainty_flag: flag,
+          consensus_ratio: ratioStr
+        },
+        should_trigger_pick: shouldPick
+      };
+    }
+  }
+
+  var jsTracker = new WasteTemporalUncertaintyTracker_JS();
+  var simFrameCounter = 140;
+  var streamInterval = null;
+
+  var trackerConsensusEl = document.getElementById("trackerConsensus");
+  var trackerRawEl = document.getElementById("trackerRaw");
+  var trackerSmoothEl = document.getElementById("trackerSmooth");
+  var trackerErrorEl = document.getElementById("trackerError");
+  var trackerErrorBarEl = document.getElementById("trackerErrorBar");
+  var trackerFlagEl = document.getElementById("trackerFlag");
+  var trackerPickStatusEl = document.getElementById("trackerPickStatus");
+  var trackerMaterialEl = document.getElementById("trackerMaterial");
+  var trackerLiveStreamEl = document.getElementById("trackerLiveStream");
+  var trackerUseBackendEl = document.getElementById("trackerUseBackend");
+  var hudBadgeEl = document.getElementById("hudBadge");
+  var hudDetailsEl = document.getElementById("hudDetails");
+  var hudDotEl = document.getElementById("hudDot");
+
+  function renderTrackerUI(frameId, rawPos, res, simGt) {
+    var target = res.target_object;
+    if (!target) return;
+
+    trackerConsensusEl.textContent = target.consensus_ratio + " (" + target.material_class + ")";
+    trackerRawEl.textContent = "[" + rawPos[0].toFixed(3) + ", " + rawPos[1].toFixed(3) + ", " + rawPos[2].toFixed(3) + "]m";
+    trackerSmoothEl.textContent = "[" + target.smooth_world_3d[0].toFixed(3) + ", " + target.smooth_world_3d[1].toFixed(3) + ", " + target.smooth_world_3d[2].toFixed(3) + "]m";
+    trackerErrorEl.textContent = target.localization_error_mm.toFixed(2) + " mm";
+
+    var pct = Math.min(100, (target.localization_error_mm / 40.0) * 100);
+    trackerErrorBarEl.style.width = pct + "%";
+
+    if (target.uncertainty_flag === "CONFIDENT") {
+      trackerErrorBarEl.style.background = "#6ddc8b";
+      trackerErrorEl.style.color = "#6ddc8b";
+      trackerFlagEl.textContent = "CONFIDENT";
+      trackerFlagEl.style.background = "rgba(109,220,139,0.2)";
+      trackerFlagEl.style.color = "#6ddc8b";
+    } else if (target.uncertainty_flag === "UNCERTAIN") {
+      trackerErrorBarEl.style.background = "#f0b964";
+      trackerErrorEl.style.color = "#f0b964";
+      trackerFlagEl.textContent = "UNCERTAIN";
+      trackerFlagEl.style.background = "rgba(240,185,100,0.25)";
+      trackerFlagEl.style.color = "#f0b964";
+    } else {
+      trackerErrorBarEl.style.background = "#e5484d";
+      trackerErrorEl.style.color = "#ff7b7b";
+      trackerFlagEl.textContent = "REJECTED";
+      trackerFlagEl.style.background = "rgba(229,72,77,0.25)";
+      trackerFlagEl.style.color = "#ff7b7b";
+    }
+
+    if (res.should_trigger_pick) {
+      trackerPickStatusEl.textContent = "CLEAR_TO_PICK! (ĐANG GẮP)";
+      trackerPickStatusEl.style.color = "#6ddc8b";
+      hudBadgeEl.textContent = "CLEAR TO PICK";
+      hudBadgeEl.style.background = "rgba(109,220,139,0.3)";
+      hudBadgeEl.style.color = "#6ddc8b";
+      hudDotEl.style.background = "#6ddc8b";
+    } else {
+      trackerPickStatusEl.textContent = "HOLD (" + target.uncertainty_flag + ")";
+      trackerPickStatusEl.style.color = target.uncertainty_flag === "CONFIDENT" ? "#8ea1bf" : "#f0b964";
+      hudBadgeEl.textContent = target.uncertainty_flag;
+      hudBadgeEl.style.background = target.uncertainty_flag === "CONFIDENT" ? "rgba(120,170,255,0.2)" : "rgba(240,185,100,0.25)";
+      hudBadgeEl.style.color = target.uncertainty_flag === "CONFIDENT" ? "#9ec6ff" : "#f0b964";
+      hudDotEl.style.background = target.uncertainty_flag === "CONFIDENT" ? "#45d6c4" : "#f0b964";
+    }
+
+    hudDetailsEl.textContent = "Consensus: " + target.consensus_ratio + " | Smooth: [" + target.smooth_world_3d.join(",") + "]m | ΔE: " + target.localization_error_mm.toFixed(1) + "mm";
+
+    // Format console trace logs
+    var fid = String(frameId).padStart(4, "0");
+    var line1 = "[FRAME #" + fid + "] [KALMAN 3D] Raw: [" + rawPos.map(function(v){ return v.toFixed(3); }).join(", ") + "]m -> Smooth: [" + target.smooth_world_3d.map(function(v){ return v.toFixed(3); }).join(", ") + "]m";
+    var line2 = "[FRAME #" + fid + "] [UNCERTAINTY] Sim Ground Truth: [" + (simGt.true_world_pos || [0,0,0]).map(function(v){ return v.toFixed(3); }).join(", ") + "]m | Error: " + target.localization_error_mm.toFixed(2) + " mm (" + target.uncertainty_flag + ")";
+    var safety = res.should_trigger_pick ? "SAFETY STATUS: CLEAR_TO_PICK!" : "SAFETY STATUS: HOLD (" + target.uncertainty_flag + ")";
+    var line3 = "[FRAME #" + fid + "] [TEMPORAL CONSENSUS] Consensus: " + target.consensus_ratio + " frames '" + target.material_class + "' -> " + safety;
+
+    log(res.should_trigger_pick ? "ok" : "err", "FRAME #" + fid + " (TV3)", target.consensus_ratio + " " + target.material_class + " · ΔE " + target.localization_error_mm.toFixed(1) + "mm · " + safety);
+    console.log(line1 + "\n" + line2 + "\n" + line3);
+  }
+
+  async function processTrackerFrame(item, simGt, frameId) {
+    if (trackerUseBackendEl.checked) {
+      try {
+        var resp = await fetch("/api/track", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ geometric_items: [item], sim_ground_truth: simGt, frame_id: frameId })
+        });
+        if (resp.ok) {
+          var data = await resp.json();
+          renderTrackerUI(data.frame_id, item.target_world_3d, data.tracked_state, simGt);
+          if (data.tracked_state.should_trigger_pick) {
+            var key = item.material_class.toLowerCase();
+            var payload = {}; payload[key] = 1;
+            setState(payload, "TV3 Python Backend");
+          }
+          return;
+        }
+      } catch (e) {
+        // Fallback to JS Tracker
+      }
+    }
+
+    var res = jsTracker.update([item], simGt);
+    renderTrackerUI(frameId, item.target_world_3d, res, simGt);
+    if (res.should_trigger_pick) {
+      var key = item.material_class.toLowerCase();
+      var payload = {}; payload[key] = 1;
+      setState(payload, "TV3 Tracker");
+    }
+  }
+
+  async function runSimulatedSequence(anomalyType) {
+    var material = trackerMaterialEl.value;
+    var baseGt = [0.050, 0.350, -0.100];
+    var simGt = { true_world_pos: baseGt };
+    jsTracker.reset();
+
+    for (var i = 1; i <= 10; i++) {
+      simFrameCounter++;
+      var noise = (Math.random() - 0.5) * 0.005;
+      var conf = 0.95;
+
+      if (anomalyType === "noise" && i === 5) {
+        // Inject extreme noise > 35mm
+        noise = 0.040;
+      }
+      if (anomalyType === "low_conf" && i === 5) {
+        // Inject low confidence < 0.65
+        conf = 0.48;
+      }
+
+      var rawPos = [
+        Math.round((baseGt[0] + noise) * 1000) / 1000,
+        Math.round((baseGt[1] + (Math.random() - 0.5) * 0.004) * 1000) / 1000,
+        Math.round((baseGt[2] + (Math.random() - 0.5) * 0.003) * 1000) / 1000
+      ];
+
+      var item = {
+        material_class: material,
+        target_world_3d: rawPos,
+        confidence: conf,
+        is_within_reach: true
+      };
+
+      await processTrackerFrame(item, simGt, simFrameCounter);
+      await new Promise(function(r) { setTimeout(r, 160); });
+    }
+  }
+
+  document.getElementById("btnRunStandard").addEventListener("click", function () {
+    runSimulatedSequence("standard");
+  });
+  document.getElementById("btnRunNoise").addEventListener("click", function () {
+    runSimulatedSequence("noise");
+  });
+  document.getElementById("btnRunLowConf").addEventListener("click", function () {
+    runSimulatedSequence("low_conf");
+  });
+
+  trackerLiveStreamEl.addEventListener("change", function () {
+    if (trackerLiveStreamEl.checked) {
+      var baseGt = [0.050, 0.350, -0.100];
+      var simGt = { true_world_pos: baseGt };
+      streamInterval = setInterval(function () {
+        simFrameCounter++;
+        var material = trackerMaterialEl.value;
+        var noise = (Math.random() - 0.5) * 0.006;
+        var rawPos = [
+          Math.round((baseGt[0] + noise) * 1000) / 1000,
+          Math.round((baseGt[1] + (Math.random() - 0.5) * 0.004) * 1000) / 1000,
+          Math.round((baseGt[2] + (Math.random() - 0.5) * 0.003) * 1000) / 1000
+        ];
+        var item = {
+          material_class: material,
+          target_world_3d: rawPos,
+          confidence: 0.94,
+          is_within_reach: true
+        };
+        processTrackerFrame(item, simGt, simFrameCounter);
+      }, 150);
+    } else {
+      if (streamInterval) { clearInterval(streamInterval); streamInterval = null; }
+    }
+  });
+
+  window.WasteTracker = {
+    tracker: jsTracker,
+    feedFrame: processTrackerFrame,
+    runSequence: runSimulatedSequence
+  };
 
   window.TrashBins = {
     config: CONFIG,
